@@ -1,5 +1,6 @@
 import random
 import sys
+from collections import deque
 
 from glfw.GLFW import *
 
@@ -7,26 +8,25 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 
-
 def drawSquare(cordsToPlaceX, cordsToPlaceY, sizeA, sizeB):
     glColor3f(0.0, 0.0, 1.0)
     glBegin(GL_TRIANGLES)
     glVertex2f(cordsToPlaceX, cordsToPlaceY)
-    glVertex2f(cordsToPlaceX+sizeA, cordsToPlaceY)
-    glVertex2f(cordsToPlaceX, cordsToPlaceY+sizeB)
+    glVertex2f(cordsToPlaceX + sizeA, cordsToPlaceY)
+    glVertex2f(cordsToPlaceX, cordsToPlaceY + sizeB)
     glEnd()
     glColor3f(0.0, 0.0, 1.0)
     glBegin(GL_TRIANGLES)
-    secondTriangleX = cordsToPlaceX+sizeA
-    secondTriangleY = cordsToPlaceX+sizeB
+    secondTriangleX = cordsToPlaceX + sizeA
+    secondTriangleY = cordsToPlaceX + sizeB
     glVertex2f(secondTriangleX, secondTriangleY)
-    glVertex2f(cordsToPlaceX+sizeA, cordsToPlaceY)
-    glVertex2f(cordsToPlaceX, cordsToPlaceY+sizeB)
+    glVertex2f(cordsToPlaceX + sizeA, cordsToPlaceY)
+    glVertex2f(cordsToPlaceX, cordsToPlaceY + sizeB)
     glEnd()
 
 
-
-def drawSquareWithDeformationAndRandomColor(cordsToPlaceX, cordsToPlaceY, sizeA, sizeB,deformation = 1.0):
+#Deformacja za pomocą przeskalowania długości boków przez paramter deformation
+def drawSquareWithDeformationAndRandomColor(cordsToPlaceX, cordsToPlaceY, sizeA, sizeB, deformation=1.0):
     glBegin(GL_TRIANGLES)
     sizeA = sizeA * deformation
     sizeB = sizeB * deformation
@@ -49,6 +49,8 @@ def drawSquareWithDeformationAndRandomColor(cordsToPlaceX, cordsToPlaceY, sizeA,
     glVertex2f(cordsToPlaceX, cordsToPlaceY + sizeB)
     glEnd()
 
+
+# Problem z narysowaniem tego za pomocą trójkątów
 def sierpinski(cordsToPlaceX, cordsToPlaceY, size, level):
     if level == 0:
         glBegin(GL_QUADS)
@@ -67,6 +69,31 @@ def sierpinski(cordsToPlaceX, cordsToPlaceY, size, level):
                     continue
                 sierpinski(cordsToPlaceX + i * size, cordsToPlaceY + j * size, size, level)
 
+def iterativeSierpinski(cordsToPlaceX, cordsToPlaceY, size, level):
+    stack = deque()
+    # Dodajemy początkowy kwadrat do stosu
+    stack.append((0, 0, 100, 5))
+    glClear(GL_COLOR_BUFFER_BIT)
+    glColor3f(1.0, 1.0, 1.0)
+
+    while stack:
+        cordsToPlaceX, cordsToPlaceY, size, level = stack.pop()
+        if level == 0:
+            glBegin(GL_QUADS)
+            glVertex2f(cordsToPlaceX, cordsToPlaceY)
+            glVertex2f(cordsToPlaceX + size, cordsToPlaceY)
+            glVertex2f(cordsToPlaceX + size, cordsToPlaceY + size)
+            glVertex2f(cordsToPlaceX, cordsToPlaceY + size)
+            glEnd()
+        else:
+            size /= 3
+            level -= 1
+            for i in range(3):
+                for j in range(3):
+                    if i == 1 and j == 1:
+                        continue
+                    stack.append((cordsToPlaceX + i * size, cordsToPlaceY + j * size, size, level))
+
 
 def startup():
     update_viewport(None, 400, 400)
@@ -79,21 +106,10 @@ def shutdown():
 
 def render(time):
     glClear(GL_COLOR_BUFFER_BIT)
-    #drawSquareWithDeformationAndRandomColor(10.0,10.0,50.0,50.0,-2) # dziala rysowanie prostokąta
-    sierpinski(10.0,10.0,100.0,4) # dziala rysowanie prostokąta
-    # glColor3f(0.0, 1.0, 0.0)
-    # glBegin(GL_LINES)
-    # glVertex2f(0.0, 0.0)
-    # glVertex2f(50.0, 0.0)
-    # glEnd()
-
-    # glColor3f(1.0, 0.0, 0.0)
-    # glBegin(GL_TRIANGLES)
-    # glVertex2f(0.0, 0.0)
-    # glVertex2f(0.0, 50.0)
-    # glVertex2f(-50.0, 0.0)
-    # glEnd()
-
+    # drawSquare(10.0,10.0,50.0,50.0,-2) # dziala rysowanie prostokąta
+    #drawSquareWithDeformationAndRandomColor(10.0,10.0,50.0,50.0,-2)  # rysowanie prostkokąta z deformacją i losowe kolory
+    #sierpinski(-50.0, -50.0, 100.0, 6)  # sierpinski rekurencyjnie
+    iterativeSierpinski(0, 0, 50, 4)  # sierpinski rekurencyjnie
     glFlush()
 
 
