@@ -19,7 +19,7 @@ left_mouse_button_pressed = 0
 right_mouse_button_pressed = 0
 mouse_x_pos_old = 0
 delta_x = 0
-
+scale = 0.01
 
 def startup():
     update_viewport(None, 400, 400)
@@ -86,7 +86,7 @@ def example_object():
 
 def render(time):
     global theta
-
+    global scale
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
 
@@ -98,8 +98,7 @@ def render(time):
         glRotatef(theta, 0.0, 1.0, 0.0)
 
     if right_mouse_button_pressed:
-        theta += delta_y * pix2angle
-        glRotatef(theta, 1.0, 0.0, 0.0)
+        glScalef(scale,scale,scale)
 
 
 
@@ -138,7 +137,12 @@ def mouse_motion_callback(window, x_pos, y_pos):
     global mouse_x_pos_old
     global mouse_y_pos_old
     global delta_y
+    global scale
 
+    if delta_y > 0:
+        scale += 0.01
+    elif delta_y < 0:
+        scale -= 0.01
     delta_y = y_pos - mouse_y_pos_old
     mouse_y_pos_old = y_pos
     delta_x = x_pos - mouse_x_pos_old
