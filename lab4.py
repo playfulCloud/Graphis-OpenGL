@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import math
 
 from glfw.GLFW import *
 
@@ -10,16 +11,19 @@ from OpenGL.GLU import *
 viewer = [0.0, 0.0, 10.0]
 
 theta = 0.0
+phi = 0.0
 pix2angle = 1.0
 
-
+R = 100
 delta_y = 0
 mouse_y_pos_old = 0
 left_mouse_button_pressed = 0
 right_mouse_button_pressed = 0
 mouse_x_pos_old = 0
 delta_x = 0
-scale = 0.01
+scale = 0.1
+camera_mode = True
+
 
 def startup():
     update_viewport(None, 400, 400)
@@ -87,6 +91,8 @@ def example_object():
 def render(time):
     global theta
     global scale
+    global phi
+    global R
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
 
@@ -94,13 +100,40 @@ def render(time):
               0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
 
     if left_mouse_button_pressed:
-        theta += delta_x * pix2angle
-        glRotatef(theta, 0.0, 1.0, 0.0)
+        if camera_mode:
+            phi += (delta_y/10) * pix2angle
+            theta += (delta_x/10) * pix2angle
+
+            # W funkcji render() lub w funkcji obsługi ruchu myszy
+            if phi > 2 * math.pi:
+                phi = phi % (2 * math.pi)
+            elif phi < 0:
+                phi = phi % (2 * math.pi)
+
+            # Ograniczenie dla phi, aby kamera nie przechodziła nad i pod obiektem
+            phi_min = math.pi / 180 * 10  # np. 10 stopni
+            phi_max = math.pi / 180 * 170  # np. 170 stopni
+            phi = max(phi_min, min(phi_max, phi))
+
+
+            scaled_cos_theta = math.cos(theta) * (math.pi/180)
+            scaled_cos_phi = math.cos(phi) * (math.pi/180)
+            scaled_sin_phi = math.sin(phi) * (math.pi/180)
+            scaled_sin_theta = math.sin(theta) * (math.pi/180)
+
+
+            x_eye = R * scaled_cos_theta * scaled_cos_phi
+            y_eye = R * scaled_sin_phi
+            z_eye = R * scaled_sin_theta * scaled_cos_phi
+
+            gluLookAt(x_eye,y_eye,z_eye,0,0,0,0,1,0)
+        else:
+            phi += (delta_y) * pix2angle
+            theta += (delta_x) * pix2angle
+            glRotatef(theta, 0.0, 1.0, 0.0)
 
     if right_mouse_button_pressed:
         glScalef(scale,scale,scale)
-
-
 
 
     axes()
@@ -148,11 +181,13 @@ def mouse_motion_callback(window, x_pos, y_pos):
     delta_x = x_pos - mouse_x_pos_old
     mouse_x_pos_old = x_pos
 
+
 def mouse_motion_callback_x(window, x_pos, y,pos):
     return 1
 
 
 def mouse_button_callback(window, button, action, mods):
+    global scale
     global left_mouse_button_pressed
     global right_mouse_button_pressed
 
@@ -164,8 +199,15 @@ def mouse_button_callback(window, button, action, mods):
     if button == GLFW_MOUSE_BUTTON_LEFT and action == GLFW_PRESS:
         left_mouse_button_pressed = 1
     else:
+        scale = 0.1
         left_mouse_button_pressed = 0
 
+def keyboard_key_callback(window, key, scancode, action, mods):
+    global camera_mode
+    if key == GLFW_KEY_ESCAPE and action == GLFW_PRESS:
+        glfwSetWindowShouldClose(window, GLFW_TRUE)
+    elif key == GLFW_KEY_SPACE and action == GLFW_PRESS:
+        camera_mode = not camera_mode  # Przełączamy tryb pracy
 
 def main():
     if not glfwInit():
