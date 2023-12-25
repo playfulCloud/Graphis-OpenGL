@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import sys
+import math
 
 from glfw.GLFW import *
 
@@ -10,11 +11,16 @@ from OpenGL.GLU import *
 viewer = [0.0, 0.0, 10.0]
 color_value = 0.0
 theta = 0.0
+phi = 0.0
+R = 10
 pix2angle = 1.0
 
 left_mouse_button_pressed = 0
 mouse_x_pos_old = 0
+mouse_y_pos_old = 0
 delta_x = 0
+delta_y = 0
+camera_mode = False
 
 mat_ambient = [1.0, 1.0, 1.0, 1.0]
 mat_diffuse = [1.0, 1.0, 1.0, 1.0]
@@ -78,26 +84,43 @@ def shutdown():
 
 def render(time):
     global theta
+    global phi
+    global R
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
 
     gluLookAt(viewer[0], viewer[1], viewer[2],
               0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+    theta += delta_x * pix2angle
+    phi += delta_y * pix2angle
 
     if left_mouse_button_pressed:
-        theta += delta_x * pix2angle
+        if camera_mode:
+            theta += delta_x * pix2angle
+            phi += delta_y * pix2angle
 
-    light_ambient2 = [color_value, 0.1, 0.3, 1.0]
-    light_diffuse2 = [0.2, color_value, 0.8, 1.0]  # Adjusted for visibility
+            # Konwersja kątów na radiany
+            theta_rad = math.radians(theta)
+            phi_rad = math.radians(phi)
 
-    # ... (rest of your render code)
+            # Obliczenie nowej pozycji światła
+            light_position[0] = R * math.sin(phi_rad) * math.cos(theta_rad)
+            light_position[1] = R * math.sin(phi_rad) * math.sin(theta_rad)
+            light_position[2] = R * math.cos(phi_rad)
 
-    # Set light properties
-    glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient2)
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse2)
+            # Aktualizacja pozycji światła
+            glLightfv(GL_LIGHT0, GL_POSITION, light_position)
 
-    glRotatef(theta, 0.0, 1.0, 0.0)
+            # Wizualizacja nowej pozycji światła
+            render_light_sphere(light_position)
+    else:
+        light_ambient2 = [color_value, 0.1, 0.3, 1.0]
+        light_diffuse2 = [0.2, color_value, 0.8, 1.0]  # Adjusted for visibility
+        glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient2)
+        glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse2)
+        glRotatef(theta, 0.0, 1.0, 0.0)
+
 
     quadric = gluNewQuadric()
     gluQuadricDrawStyle(quadric, GLU_FILL)
@@ -105,6 +128,16 @@ def render(time):
     gluDeleteQuadric(quadric)
 
     glFlush()
+
+
+def render_light_sphere(light_pos):
+    glPushMatrix()
+    glTranslatef(light_pos[0], light_pos[1], light_pos[2])
+    quadric = gluNewQuadric()
+    gluQuadricDrawStyle(quadric, GLU_FILL)
+    gluSphere(quadric, 0.1, 10, 10)  # Mała sfera wizualizująca pozycję światła
+    gluDeleteQuadric(quadric)
+    glPopMatrix()
 
 
 def update_viewport(window, width, height):
@@ -132,6 +165,7 @@ def keyboard_key_callback(window, key, scancode, action, mods):
         glfwSetWindowShouldClose(window, GLFW_TRUE)
     elif key == GLFW_KEY_SPACE and action == GLFW_PRESS:
         camera_mode = not camera_mode  # Przełączamy tryb pracy
+        print("Camera mode status: " + str(camera_mode))
     elif key == GLFW_KEY_W and action == GLFW_PRESS:
         color_value = min(color_value + 0.1, 1.0)  # Ensure color_value doesn't go above 1.0
         print("Increased color_value:", color_value)
@@ -142,14 +176,17 @@ def keyboard_key_callback(window, key, scancode, action, mods):
 def mouse_motion_callback(window, x_pos, y_pos):
     global delta_x
     global mouse_x_pos_old
-
+    global mouse_y_pos_old
+    global delta_y
+    delta_y = y_pos - mouse_y_pos_old
+    mouse_y_pos_old = y_pos
     delta_x = x_pos - mouse_x_pos_old
     mouse_x_pos_old = x_pos
 
 
+
 def mouse_button_callback(window, button, action, mods):
     global left_mouse_button_pressed
-
     if button == GLFW_MOUSE_BUTTON_LEFT and action == GLFW_PRESS:
         left_mouse_button_pressed = 1
     else:
