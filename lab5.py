@@ -8,7 +8,7 @@ from OpenGL.GLU import *
 
 
 viewer = [0.0, 0.0, 10.0]
-
+color_value = 0.0
 theta = 0.0
 pix2angle = 1.0
 
@@ -27,7 +27,7 @@ light_specular = [1.0, 1.0, 1.0, 1.0]
 light_position = [0.0, 0.0, 10.0, 1.0]
 
 
-light_ambient2 = [0.1, 0.1, 0.3, 1.0]  # Soft blue
+light_ambient2 = [color_value, 0.1, 0.3, 1.0]  # Soft blue
 light_diffuse2 = [0.2, 0.2, 0.8, 1.0]  # Brighter blue
 light_specular2 = [1.0, 1.0, 1.0, 1.0]  # Wh
 light_position2 = [-10.0, 10.0, 5.0, 1.0]   # Position remains the same
@@ -88,6 +88,15 @@ def render(time):
     if left_mouse_button_pressed:
         theta += delta_x * pix2angle
 
+    light_ambient2 = [color_value, 0.1, 0.3, 1.0]
+    light_diffuse2 = [0.2, color_value, 0.8, 1.0]  # Adjusted for visibility
+
+    # ... (rest of your render code)
+
+    # Set light properties
+    glLightfv(GL_LIGHT1, GL_AMBIENT, light_ambient2)
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse2)
+
     glRotatef(theta, 0.0, 1.0, 0.0)
 
     quadric = gluNewQuadric()
@@ -117,9 +126,18 @@ def update_viewport(window, width, height):
 
 
 def keyboard_key_callback(window, key, scancode, action, mods):
+    global camera_mode
+    global color_value
     if key == GLFW_KEY_ESCAPE and action == GLFW_PRESS:
         glfwSetWindowShouldClose(window, GLFW_TRUE)
-
+    elif key == GLFW_KEY_SPACE and action == GLFW_PRESS:
+        camera_mode = not camera_mode  # Przełączamy tryb pracy
+    elif key == GLFW_KEY_W and action == GLFW_PRESS:
+        color_value = min(color_value + 0.1, 1.0)  # Ensure color_value doesn't go above 1.0
+        print("Increased color_value:", color_value)
+    elif key == GLFW_KEY_S and action == GLFW_PRESS:
+        color_value = max(color_value - 0.1, 0.0)  # Ensure color_value doesn't go below 0.0
+        print("Decreased color_value:", color_value)
 
 def mouse_motion_callback(window, x_pos, y_pos):
     global delta_x
